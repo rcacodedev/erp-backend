@@ -21,8 +21,10 @@ INSTALLED_APPS = [
     "django.contrib.sessions","django.contrib.messages","django.contrib.staticfiles",
     "rest_framework","corsheaders","django_filters","drf_spectacular",
     "django_rq",
-    "core","billing","contacts","inventory","sales","purchases","analytics","documents",
+    "core", "accounts", "billing","contacts","inventory","sales","purchases","analytics","documents",
 ]
+
+AUTH_USER_MODEL = "accounts.User"
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -33,6 +35,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "core.middleware.TenantMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -68,6 +71,9 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
+# CORS / CSRF
+CORS_ALLOW_CREDENTIALS = True
+CSRF_TRUSTED_ORIGINS = [o for o in os.environ.get("CSRF_TRUSTED_ORIGINS","").split(",") if o]
 CORS_ALLOWED_ORIGINS = [o for o in os.environ.get("CORS_ALLOWED_ORIGINS","").split(",") if o]
 
 REST_FRAMEWORK = {
@@ -85,11 +91,26 @@ SPECTACULAR_SETTINGS = {
 }
 
 
+
+ACCESS_MIN = int(os.getenv("ACCESS_TOKEN_MINUTES", "15"))
+REFRESH_DAYS = int(os.getenv("REFRESH_TOKEN_DAYS", "7"))
+
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "ALGORITHM": os.getenv("JWT_ALGORITHM", "HS256"),
+    "SIGNING_KEY": os.getenv("JWT_SIGNING_KEY", SECRET_KEY),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=ACCESS_MIN),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=REFRESH_DAYS),
     "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
+    "AUTH_HEADER_TYPES": ("Bearer",),
+    # Añadimos claims personalizados en un serializer más abajo
 }
+
+# Cookies para refresh
+REFRESH_COOKIE_NAME = os.getenv("REFRESH_COOKIE_NAME", "refresh_token")
+REFRESH_COOKIE_SAMESITE = os.getenv("REFRESH_COOKIE_SAMESITE", "Lax")
+REFRESH_COOKIE_SECURE = os.getenv("REFRESH_COOKIE_SECURE", "False") == "True"
+REFRESH_COOKIE_PATH = "/api/v1/auth/"
 
 # Redis & RQ
 RQ_QUEUES = { "default": {"URL": os.environ["REDIS_URL"]} }
