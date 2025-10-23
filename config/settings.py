@@ -21,7 +21,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions","django.contrib.messages","django.contrib.staticfiles",
     "rest_framework","corsheaders","django_filters","drf_spectacular",
     "django_rq",
-    "core", "accounts", "billing","contacts","inventory","sales","purchases","analytics","documents",
+    "core", "accounts", "billing.apps.BillingConfig","contacts","inventory","sales","purchases","analytics","documents",
 ]
 
 AUTH_USER_MODEL = "accounts.User"
@@ -119,3 +119,11 @@ RQ_QUEUES = { "default": {"URL": os.environ["REDIS_URL"]} }
 STRIPE_PUBLIC_KEY = os.environ.get("STRIPE_PUBLIC_KEY","")
 STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY","")
 STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET","")
+
+STRIPE_PRICE_STARTER = os.getenv("STRIPE_PRICE_STARTER")
+STRIPE_PRICE_PRO = os.getenv("STRIPE_PRICE_PRO")
+STRIPE_PRICE_ENTERPRISE = os.getenv("STRIPE_PRICE_ENTERPRISE")
+
+BILLING_SUCCESS_URL = os.getenv("BILLING_SUCCESS_URL", "http://localhost:5173/billing/success")
+BILLING_CANCEL_URL = os.getenv("BILLING_CANCEL_URL", "http://localhost:5173/billing/cancel")
+PORTAL_RETURN_URL = os.getenv("PORTAL_RETURN_URL", "http://localhost:5173/billing/portal-return")

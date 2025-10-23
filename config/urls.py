@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.urls import path, include
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from accounts.views import RegisterView, LoginView, RefreshCookieView, LogoutView, MeView
+from billing.webhooks import stripe_webhook
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -25,4 +26,6 @@ urlpatterns = [
     path("api/v1/t/<slug:org_slug>/sales/", include("sales.urls")),
     path("api/v1/t/<slug:org_slug>/purchases/", include("purchases.urls")),
     path("api/v1/t/<slug:org_slug>/analytics/", include("analytics.urls")),
+
+    path("api/v1/billing/stripe/webhook/", stripe_webhook, name="stripe-webhook"),  # GLOBAL (sin slug)
 ]

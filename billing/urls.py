@@ -1,9 +1,14 @@
 from django.urls import path
-from django.http import JsonResponse
-
-def health(_request):
-    return JsonResponse({"app": "billing", "status": "ok"})
+from .views import (
+    BillingHealthView,
+    CreateCheckoutSessionView,
+    CreatePortalSessionView,
+    GetSubscriptionView,
+)
 
 urlpatterns = [
-    path("health/", health, name="billing-health"),
+    path("health/", BillingHealthView.as_view(), name="billing-health"),
+    path("stripe/checkout/", CreateCheckoutSessionView.as_view(), name="stripe-checkout"),
+    path("stripe/portal/", CreatePortalSessionView.as_view(), name="stripe-portal"),
+    path("subscription/", GetSubscriptionView.as_view(), name="billing-subscription"),
 ]
