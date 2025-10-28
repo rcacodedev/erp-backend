@@ -14,7 +14,16 @@ class AttachmentViewSet(OrgScopedViewSet, viewsets.ModelViewSet):
     filterset_fields = ("categoria","periodo_nomina")
 
     def get_queryset(self):
-        return super().get_queryset().filter(contact_id=self.kwargs["contact_pk"])
+        return (
+            Attachment.objects
+            .select_related('contact')
+            .filter(
+                contact_id=self.kwargs["contact_pk"],
+                contact__org=self.get_org(),   # <- scoping por org vía contact
+            )
+            .order_by('-id')
+        )
+
 
     def perform_create(self, serializer):
         obj = serializer.save(

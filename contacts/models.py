@@ -342,7 +342,7 @@ class ClientAttachment(AuditMixin):
     sha256 = models.CharField(max_length=64, blank=True)
 
 class ClientNote(AuditMixin):
-    cliente = models.ForeignKey(Contact, on_delete=models.CASCADE, related_name='notas')
+    cliente = models.ForeignKey(Contact, on_delete=models.CASCADE, related_name='client_notes')
     titulo = models.CharField(max_length=150)
     texto = models.TextField()
     importante = models.BooleanField(default=False)
@@ -358,3 +358,59 @@ class ClientEvent(AuditMixin):
     empleado_asignado = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
     estado = models.CharField(max_length=20, choices=[('pendiente','Pendiente'),('realizada','Realizada'),('cancelada','Cancelada')], default='pendiente')
     ubicacion = models.CharField(max_length=200, blank=True)
+
+# ===== SUPPLIERS =====
+
+def supplier_upload_to(instance, filename):
+    import uuid, os
+    safe = os.path.basename(filename)
+    return f"org/{instance.supplier.org_id}/suppliers/{instance.supplier_id}/docs/{uuid.uuid4()}__{safe}"
+
+def supplier_cert_upload_to(instance, filename):
+    import uuid, os
+    safe = os.path.basename(filename)
+    return f"org/{instance.supplier.org_id}/suppliers/{instance.supplier_id}/certs/{uuid.uuid4()}__{safe}"
+
+class SupplierAttachment(AuditMixin):
+    supplier = models.ForeignKey(Contact, on_delete=models.CASCADE, related_name='supplier_docs')
+    categoria = models.CharField(max_length=30, blank=True)  # 'contrato','certificado','homologacion','rgpd','otro'
+    file = models.FileField(upload_to=supplier_upload_to, max_length=500)
+    nombre_original = models.CharField(max_length=255)
+    confidencial = models.BooleanField(default=False)
+    sha256 = models.CharField(max_length=64, blank=True)
+
+class SupplierNote(AuditMixin):
+    supplier = models.ForeignKey(Contact, on_delete=models.CASCADE, related_name='supplier_notes')
+    titulo = models.CharField(max_length=150)
+    texto = models.TextField()
+    importante = models.BooleanField(default=False)
+
+class SupplierPrice(AuditMixin):
+    org = models.ForeignKey(Organization, on_delete=models.CASCADE)
+    supplier = models.ForeignKey(Contact, on_delete=models.CASCADE, related_name='prices')
+    sku_proveedor = models.CharField(max_length=120)
+    producto_sku_interno = models.CharField(max_length=120, blank=True)  # V2: migrar a FK inventory.Product
+    precio = models.DecimalField(max_digits=12, decimal_places=4)
+    moneda = models.CharField(max_length=10, default='EUR')
+    min_qty = models.PositiveIntegerField(default=1)
+    lead_time_dias = models.PositiveIntegerField(default=0)
+    valido_desde = models.DateField()
+    valido_hasta = models.DateField(null=True, blank=True)
+
+    class Meta:
+        unique_together = (('supplier','sku_proveedor','valido_desde'),)
+        indexes = [
+            models.Index(fields=['supplier','sku_proveedor','valido_desde']),
+            models.Index(fields=['org']),
+        ]
+
+class SupplierCertification(AuditMixin):
+    supplier = models.ForeignKey(Contact, on_delete=models.CASCADE, related_name='certifications')
+    tipo = models.CharField(max_length=50)  # ISO9001, CE, etc.
+    codigo = models.CharField(max_length=80, blank=True)
+    fecha_emision = models.DateField(null=True, blank=True)
+    fecha_caducidad = models.DateField(null=True, blank=True)
+    adjunto = models.FileField(upload_to=supplier_cert_upload_to, null=True, blank=True)
+
+    class Meta:
+        indexes = [models.Index(fields=['supplier','tipo','fecha_caducidad'])]
