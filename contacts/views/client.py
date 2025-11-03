@@ -11,8 +11,8 @@ class ClientViewSet(OrgScopedViewSet, viewsets.ModelViewSet):
     queryset = Contact.objects.filter(tipo='client')
     filter_backends = (DjangoFilterBackend, drf_filters.OrderingFilter, drf_filters.SearchFilter)
     filterset_class = ContactFilter
-    ordering_fields = ("nombre","razon_social","updated_at")
-    search_fields = ("nombre","razon_social","email","telefono")
+    ordering_fields = ("nombre", "razon_social", "updated_at")
+    search_fields = ("nombre", "razon_social", "email", "telefono", "documento_id")  # ← añadido
 
     def get_queryset(self):
         return super().get_queryset().filter(tipo='client')

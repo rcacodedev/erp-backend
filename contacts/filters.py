@@ -1,25 +1,24 @@
+# contacts/filters.py
 import django_filters
 from contacts.models import Contact
 
 class ContactFilter(django_filters.FilterSet):
-    q = django_filters.CharFilter(method='search', label='search')
     tipo = django_filters.CharFilter(field_name='tipo')
     activo = django_filters.BooleanFilter(field_name='activo')
     bloqueado = django_filters.BooleanFilter(field_name='bloqueado')
-    etiquetas = django_filters.CharFilter(method='by_tag')
+    etiquetas = django_filters.CharFilter(method='by_tag')  # JSON list contains
 
     class Meta:
         model = Contact
-        fields = ("tipo", "activo", "bloqueado")
+        fields = ("tipo", "activo", "bloqueado", "etiquetas")
 
-def search(self, qs, name, value):
-    return qs.filter(
-        models.Q(nombre__icontains=value) |
-        models.Q(apellidos__icontains=value) |
-        models.Q(razon_social__icontains=value) |
-        models.Q(email__icontains=value) |
-        models.Q(telefono__icontains=value)
-    )
-
-def by_tag(self, qs, name, value):
-    return qs.filter(etiquetas__contains=[value])
+    def by_tag(self, queryset, name, value: str):
+        """
+        Filtra contactos cuya lista JSON 'etiquetas' contenga exactamente el valor dado.
+        Ej.: ?etiquetas=vip  -> etiquetas = ["vip", "gold"]  ✅
+        """
+        v = (value or "").strip()
+        if not v:
+            return queryset
+        # Para Postgres JSONField list: contiene 'v'
+        return queryset.filter(etiquetas__contains=[v])

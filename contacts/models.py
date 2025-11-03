@@ -2,6 +2,8 @@ from django.db import models
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 from django.core.validators import MinValueValidator, MaxValueValidator
+from django.contrib.postgres.indexes import GinIndex
+from django.db.models import Q
 
 # Usa tus modelos reales del core
 from core.models import TimeStampedModel, Organization
@@ -105,13 +107,29 @@ class Contact(AuditMixin):
     class Meta:
         indexes = [
             models.Index(fields=['org', 'tipo']),
+            models.Index(fields=['org', 'razon_social']),
             models.Index(fields=['org', 'email']),
             models.Index(fields=['org', 'documento_id']),
-            models.Index(fields=['org', 'razon_social']),
+            models.Index(fields=['org', 'nombre']),
+            models.Index(fields=['org', 'telefono']),
+            models.Index(fields=['org', 'updated_by']),  # útil para auditoría en listados
+            models.Index(fields=['org', 'activo']),
+            models.Index(fields=['org', 'bloqueado']),
+            GinIndex(name='idx_contacts_etiquetas_gin', fields=['etiquetas']),
         ]
-        unique_together = (
-            ('org', 'tipo', 'email'),
-        )
+        # Evita colisión por email/documento vacío: solo únicos si no están vacíos
+        constraints = [
+            models.UniqueConstraint(
+                fields=['org', 'tipo', 'email'],
+                name='uq_contact_email_nonempty',
+                condition=~Q(email="")
+            ),
+            models.UniqueConstraint(
+                fields=['org', 'documento_id'],
+                name='uq_contact_docid_nonempty',
+                condition=~Q(documento_id="")
+            ),
+        ]
 
     def __str__(self):
         base = self.razon_social or f"{self.nombre} {self.apellidos}".strip()
