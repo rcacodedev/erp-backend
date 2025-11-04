@@ -1,25 +1,23 @@
 # contacts/views/mixins.py
 from rest_framework import viewsets
-from core.models import Organization
 
 class OrgScopedViewSet(viewsets.GenericViewSet):
     """
-    Lee org desde la URL /api/v1/t/<org_slug>/...,
-    la guarda en request.org y filtra queryset por org.
+    Aplica un filtro por organización al queryset.
+    Por defecto usa 'org'; para modelos sin org directo, sobreescribe org_lookup.
     """
+    org_lookup = "org"
+    queryset = None
+
     def get_org(self):
-        if not hasattr(self, "_org"):
-            self._org = Organization.objects.get(slug=self.kwargs["org_slug"])
-            # Hacemos disponible la org para permisos que miran request.org
-            self.request.org = self._org
-        return self._org
+        return getattr(self.request, "org", None)
 
     def get_queryset(self):
-        qs = super().get_queryset()
-        return qs.filter(org=self.get_org())
-
-    def perform_create(self, serializer):
-        serializer.save(org=self.get_org(), created_by=self.request.user, updated_by=self.request.user)
-
-    def perform_update(self, serializer):
-        serializer.save(updated_by=self.request.user)
+        assert self.queryset is not None, (
+            f"{self.__class__.__name__} debe definir 'queryset'"
+        )
+        qs = self.queryset
+        org = self.get_org()
+        if org is not None:
+            qs = qs.filter(**{self.org_lookup: org})
+        return qs

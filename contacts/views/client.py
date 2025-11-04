@@ -23,7 +23,7 @@ class ClientViewSet(OrgScopedViewSet, viewsets.ModelViewSet):
         drf_filters.SearchFilter,
     )
     filterset_class = ContactFilter
-    ordering_fields = ("nombre", "razon_social", "updated_at")
+    ordering_fields = ("id", "nombre", "razon_social", "updated_at", "created_at")
     search_fields = ("nombre", "razon_social", "email", "telefono")
 
     # Opcional: si quieres reforzar el filtro por tipo aquí también

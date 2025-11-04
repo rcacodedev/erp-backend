@@ -11,7 +11,7 @@ class SupplierViewSet(OrgScopedViewSet, viewsets.ModelViewSet):
     permission_classes = (IsAuthenticated,)
     filter_backends = (DjangoFilterBackend, drf_filters.OrderingFilter, drf_filters.SearchFilter)
     filterset_class = ContactFilter
-    ordering_fields = ("razon_social","nombre","updated_at")
+    ordering_fields = ("id", "nombre", "razon_social", "updated_at", "created_at")
     search_fields = ("razon_social","nombre","apellidos","email","telefono")
     queryset = (
         Contact.objects.filter(tipo='supplier')

@@ -16,7 +16,7 @@ class EmployeeViewSet(OrgScopedViewSet, viewsets.ModelViewSet):
     permission_classes = (IsAuthenticated,)
     filter_backends = (DjangoFilterBackend, drf_filters.OrderingFilter, drf_filters.SearchFilter)
     filterset_class = ContactFilter
-    ordering_fields = ("nombre", "razon_social", "updated_at")
+    ordering_fields = ("id", "nombre", "razon_social", "updated_at", "created_at")
     search_fields = ("nombre", "apellidos", "razon_social", "email", "telefono", "documento_id")
     http_method_names = ["get", "post", "put", "patch", "delete", "head", "options"]
     queryset = (
