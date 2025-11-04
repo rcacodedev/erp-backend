@@ -13,10 +13,15 @@ class SupplierViewSet(OrgScopedViewSet, viewsets.ModelViewSet):
     filterset_class = ContactFilter
     ordering_fields = ("razon_social","nombre","updated_at")
     search_fields = ("razon_social","nombre","apellidos","email","telefono")
+    queryset = (
+        Contact.objects.filter(tipo='supplier')
+        .select_related('org')
+        .order_by('id')
+    )
 
     def get_queryset(self):
-        # Scope explícito por tenant + tipo
-        return Contact.objects.filter(org=self.get_org(), tipo="supplier").order_by("-id")
+        qs = super().get_queryset()
+        return qs.filter(tipo='supplier')
 
     def get_serializer_class(self):
         return SupplierDetailSerializer if self.action in ("retrieve","create","update","partial_update") else SupplierListSerializer

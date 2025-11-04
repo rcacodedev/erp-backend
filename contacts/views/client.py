@@ -8,14 +8,43 @@ from .mixins import OrgScopedViewSet
 
 class ClientViewSet(OrgScopedViewSet, viewsets.ModelViewSet):
     permission_classes = (IsAuthenticated,)
-    queryset = Contact.objects.filter(tipo='client')
-    filter_backends = (DjangoFilterBackend, drf_filters.OrderingFilter, drf_filters.SearchFilter)
+
+    # 🔧 BASE queryset requerido por DRF
+    queryset = (
+        Contact.objects.filter(tipo='client')
+        .select_related('org')
+        # .prefetch_related('direcciones')  # activa si lo necesitas en list
+        .order_by('id')
+    )
+
+    filter_backends = (
+        DjangoFilterBackend,
+        drf_filters.OrderingFilter,
+        drf_filters.SearchFilter,
+    )
     filterset_class = ContactFilter
     ordering_fields = ("nombre", "razon_social", "updated_at")
-    search_fields = ("nombre", "razon_social", "email", "telefono", "documento_id")  # ← añadido
+    search_fields = ("nombre", "razon_social", "email", "telefono")
 
+    # Opcional: si quieres reforzar el filtro por tipo aquí también
     def get_queryset(self):
-        return super().get_queryset().filter(tipo='client')
+        qs = super().get_queryset()
+        return qs.filter(tipo='client')
 
     def get_serializer_class(self):
-        return ContactDetailSerializer if self.action in ("retrieve","create","update","partial_update") else ContactListSerializer
+        return (
+            ContactDetailSerializer
+            if self.action in ("retrieve", "create", "update", "partial_update")
+            else ContactListSerializer
+        )
+
+    def perform_create(self, serializer):
+        serializer.save(
+            org=self.get_org(),
+            tipo="client",
+            created_by=self.request.user,
+            updated_by=self.request.user,
+        )
+
+    def perform_update(self, serializer):
+        serializer.save(tipo="client", updated_by=self.request.user)

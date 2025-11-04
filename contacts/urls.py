@@ -14,6 +14,7 @@ from contacts.views.employee_hours import EmployeeHoursViewSet
 from contacts.views.hours_import import EmployeeHoursImportView
 from contacts.views.compensation import EmployeeCompensationViewSet
 from contacts.views.employee_financials import EmployeeFinancialsView
+from contacts.views.employee import EmployeeViewSet
 
 # Locations / ingresos ubicación (puente V1)
 from contacts.views.location_lite import LocationLiteViewSet
@@ -38,6 +39,7 @@ router = DefaultRouter()
 
 # Clientes y suppliers como endpoints dedicados
 router.register(r'clients', ClientViewSet, basename='clients')
+router.register(r'employees', EmployeeViewSet, basename='employees')
 router.register(r'suppliers', SupplierViewSet, basename='suppliers')
 
 # Locations & revenues (puente)
