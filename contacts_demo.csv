@@ -1,0 +1,4 @@
+﻿tipo,nombre,razon_social,email,documento_id,telefono,activo
+client,Panadería Marta,Panadería Marta S.L.,marta@pan.es,ESX123,913001122,1
+supplier,Carnes Pepe,Carnes Pepe S.A.,proveedor@carnespepe.es,ESX124,913004455,1
+employee,Juan,,,DNI123,,1

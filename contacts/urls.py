@@ -8,6 +8,8 @@ from contacts.views.client import ClientViewSet  # listado/CRUD de clientes (Con
 from contacts.views.address import AddressViewSet
 from contacts.views.attachments import AttachmentViewSet
 from contacts.views.consent import ConsentViewSet
+from contacts.views.import_export import ContactsImportView, ContactsExportView, JobStatusView, JobDownloadView
+from contacts.views.template import ContactsTemplateCSVView
 
 # Empleados
 from contacts.views.employee_hours import EmployeeHoursViewSet
@@ -53,6 +55,13 @@ def health(_request):
 
 urlpatterns = [
     path("health/", health, name="contacts-health"),
+
+    path("template.csv", ContactsTemplateCSVView.as_view(), name="contacts-template"),
+    path("import/", ContactsImportView.as_view(), name="contacts-import"),
+    path("export/", ContactsExportView.as_view(), name="contacts-export"),
+    path("jobs/<str:job_id>/status/", JobStatusView.as_view(), name="contacts-job-status"),
+    path("jobs/<str:job_id>/download/", JobDownloadView.as_view(), name="contacts-job-download"),
+
     path("", include(router.urls)),
 
     # --- Nested por Contact (empleado) ---

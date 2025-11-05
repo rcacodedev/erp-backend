@@ -10,3 +10,4 @@ python-dotenv
 stripe
 rq
 django-rq
+rq-win>=0.4
