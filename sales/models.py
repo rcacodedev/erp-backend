@@ -189,3 +189,50 @@ class Payment(OrgScopedModel):
         default="transfer",
     )
     notes = models.CharField(max_length=240, blank=True, default="")
+
+class Quote(OrgScopedModel):
+    STATUS_CHOICES = (
+        ("draft", "Draft"),
+        ("sent", "Sent"),
+        ("accepted", "Accepted"),
+        ("rejected", "Rejected"),
+        ("expired", "Expired"),
+    )
+
+    number = models.CharField(max_length=32)  # ej: Q-2025-0001
+    date = models.DateField(default=timezone.now)
+    valid_until = models.DateField(null=True, blank=True)
+    customer = models.ForeignKey(Contact, on_delete=models.PROTECT)
+    billing_address = models.CharField(max_length=240, blank=True, default="")
+    status = models.CharField(max_length=16, choices=STATUS_CHOICES, default="draft")
+    currency = models.CharField(max_length=3, default="EUR")
+
+    totals_base = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"))
+    totals_tax = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"))
+    total = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"))
+
+    # vínculo opcional a la factura generada
+    invoice = models.ForeignKey(
+        Invoice,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="from_quotes",
+    )
+
+    class Meta:
+        unique_together = ("org", "number")
+
+    def __str__(self):
+        return f"{self.number} ({self.customer_id})"
+
+
+class QuoteLine(models.Model):
+    quote = models.ForeignKey(Quote, on_delete=models.CASCADE, related_name="lines")
+    product = models.ForeignKey(Product, null=True, blank=True, on_delete=models.PROTECT)
+    description = models.CharField(max_length=240, blank=True, default="")
+    qty = models.DecimalField(max_digits=16, decimal_places=3)
+    uom = models.CharField(max_length=24, default="unidad")
+    unit_price = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    tax_rate = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("21.00"))
+    discount_pct = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("0.00"))

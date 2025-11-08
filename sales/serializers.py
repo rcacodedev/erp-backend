@@ -1,6 +1,6 @@
 # sales/serializers.py
 from rest_framework import serializers
-from .models import DeliveryNote, DeliveryNoteLine, Invoice, InvoiceLine, Payment
+from .models import DeliveryNote, DeliveryNoteLine, Invoice, InvoiceLine, Payment, Quote, QuoteLine
 from contacts.models import Contact
 
 
@@ -97,3 +97,45 @@ class PaymentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Payment
         fields = ["id", "invoice", "amount", "date", "method", "notes"]
+
+class QuoteLineSerializer(serializers.ModelSerializer):
+    product_name = serializers.CharField(source="product.name", read_only=True)
+
+    class Meta:
+        model = QuoteLine
+        fields = [
+            "id",
+            "product",
+            "product_name",
+            "description",
+            "qty",
+            "uom",
+            "unit_price",
+            "tax_rate",
+            "discount_pct",
+        ]
+
+
+class QuoteSerializer(serializers.ModelSerializer):
+    customer_detail = ContactMiniSerializer(source="customer", read_only=True)
+    lines = QuoteLineSerializer(many=True, read_only=True)
+    invoice_id = serializers.IntegerField(source="invoice.id", read_only=True)
+
+    class Meta:
+        model = Quote
+        fields = [
+            "id",
+            "number",
+            "date",
+            "valid_until",
+            "customer",
+            "customer_detail",
+            "billing_address",
+            "status",
+            "currency",
+            "totals_base",
+            "totals_tax",
+            "total",
+            "invoice_id",
+            "lines",
+        ]
