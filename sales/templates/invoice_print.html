@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>Factura {{ invoice.series }}{{ invoice.number }}</title>
+    <style>
+      body {
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        font-size: 12px;
+        color: #111827;
+        margin: 20px;
+      }
+      h1,
+      h2,
+      h3,
+      h4 {
+        margin: 0;
+        padding: 0;
+      }
+      .header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 20px;
+      }
+      .box {
+        border: 1px solid #e5e7eb;
+        padding: 8px 10px;
+        border-radius: 4px;
+      }
+      .muted {
+        color: #6b7280;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 16px;
+      }
+      th,
+      td {
+        padding: 6px 4px;
+        border-bottom: 1px solid #e5e7eb;
+      }
+      th {
+        text-align: left;
+        background: #f9fafb;
+        font-weight: 600;
+      }
+      .right {
+        text-align: right;
+      }
+      .totals {
+        margin-top: 16px;
+        width: 100%;
+        max-width: 260px;
+        margin-left: auto;
+      }
+      .totals tr:last-child td {
+        border-bottom: none;
+      }
+      .totals-label {
+        text-align: right;
+      }
+      .totals-value {
+        text-align: right;
+        width: 100px;
+      }
+      .footer {
+        margin-top: 24px;
+        font-size: 10px;
+        color: #6b7280;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <div>
+        <h1>Factura {{ invoice.series }}{{ invoice.number }}</h1>
+        <p class="muted">
+          Fecha de emisión: {{ invoice.date_issue|date:"d/m/Y" }}
+        </p>
+        {% if invoice.date_due %}
+        <p class="muted">Vencimiento: {{ invoice.date_due|date:"d/m/Y" }}</p>
+        {% endif %}
+      </div>
+
+      <div class="box">
+        <h3>Empresa</h3>
+        {% if org %}
+        <p>
+          {{ org.name }}<br />
+          {% if org.vat_number %}CIF: {{ org.vat_number }}<br />{% endif %} {%
+          if org.address %}{{ org.address }}<br />{% endif %} {% if org.city or
+          org.zip_code %} {{ org.zip_code }} {{ org.city }}<br />
+          {% endif %}
+        </p>
+        {% else %}
+        <p>{{ request.get_host }}</p>
+        {% endif %}
+      </div>
+
+      <div class="box">
+        <h3>Cliente</h3>
+        {% if customer %}
+        <p>
+          {{ customer.display_name }}<br />
+          {% if customer.vat_number %}CIF/NIF: {{ customer.vat_number }}<br />{%
+          endif %} {% if customer.address %}{{ customer.address }}<br />{% endif
+          %} {% if customer.city or customer.zip_code %} {{ customer.zip_code }}
+          {{ customer.city }}<br />{% endif %}
+        </p>
+        {% else %}
+        <p>(sin datos de cliente)</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Descripción</th>
+          <th>Uds</th>
+          <th class="right">Cant.</th>
+          <th class="right">Precio (€)</th>
+          <th class="right">IVA %</th>
+          <th class="right">Importe (€)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for line in lines %}
+        <tr>
+          <td>{{ line.description }}</td>
+          <td>{{ line.uom }}</td>
+          <td class="right">{{ line.qty }}</td>
+          <td class="right">{{ line.unit_price|floatformat:2 }}</td>
+          <td class="right">{{ line.tax_rate|floatformat:2 }}</td>
+          <td class="right">{{ line.subtotal|floatformat:2 }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="6" class="muted">No hay líneas en esta factura.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <table class="totals">
+      <tbody>
+        <tr>
+          <td class="totals-label muted">Base imponible</td>
+          <td class="totals-value">
+            {{ invoice.totals_base|floatformat:2 }} €
+          </td>
+        </tr>
+        <tr>
+          <td class="totals-label muted">IVA</td>
+          <td class="totals-value">{{ invoice.totals_tax|floatformat:2 }} €</td>
+        </tr>
+        <tr>
+          <td class="totals-label"><strong>Total factura</strong></td>
+          <td class="totals-value">
+            <strong>{{ invoice.total|floatformat:2 }} €</strong>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="footer">
+      <p>
+        Forma de pago: {{ invoice.payment_method|default:"No especificada" }}
+      </p>
+      <p>
+        {{ org.name }} – {{ org.vat_number }} · {{ org.address }} · {{
+        org.zip_code }} {{ org.city }}
+      </p>
+    </div>
+  </body>
+</html>

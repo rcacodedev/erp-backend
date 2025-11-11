@@ -4,6 +4,10 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
+from django.shortcuts import get_object_or_404, render
+from django.views import View
+from django.contrib.auth.mixins import LoginRequiredMixin
+
 from core.mixins import OrgScopedModelViewSet
 from .models import DeliveryNote, Invoice, Payment, Quote
 from .serializers import (
@@ -29,6 +33,8 @@ from .services_quote import (
     convert_to_invoice as quote_convert_to_invoice,
     replace_lines as quote_replace_lines,
 )
+
+from contacts.models import Contact
 
 
 class DeliveryNoteViewSet(OrgScopedModelViewSet):
@@ -335,3 +341,66 @@ class QuoteViewSet(OrgScopedModelViewSet):
         inv = quote_convert_to_invoice(quote)
         # devolvemos la factura generada
         return Response(InvoiceSerializer(inv).data, status=status.HTTP_201_CREATED)
+
+class InvoicePrintView(LoginRequiredMixin, View):
+    template_name = "sales/invoice_print.html"
+
+    def get(self, request, org_slug, pk):
+        org = get_object_or_404(Org, slug=org_slug)
+        invoice = get_object_or_404(
+            Invoice.objects.select_related("customer", "org").prefetch_related("lines"),
+            pk=pk,
+            org=org,
+        )
+
+        customer = getattr(invoice, "customer", None)
+
+        # Preparamos líneas con subtotal base (sin IVA) por línea
+        lines = []
+        for ln in invoice.lines.all():
+            qty = ln.qty or 0
+            price = ln.unit_price or 0
+            subtotal = qty * price
+            lines.append(
+                {
+                    "description": ln.description,
+                    "uom": ln.uom,
+                    "qty": qty,
+                    "unit_price": price,
+                    "tax_rate": ln.tax_rate or 0,
+                    "subtotal": subtotal,
+                }
+            )
+
+        customer_ctx = None
+        if customer:
+          # ajusta los nombres según tu modelo de Contacto
+          display_name = (
+              customer.razon_social
+              or f"{customer.nombre} {customer.apellidos}".strip()
+              or customer.nombre_comercial
+          )
+          customer_ctx = {
+              "display_name": display_name,
+              "vat_number": getattr(customer, "vat_number", None),
+              "address": getattr(customer, "address", None),
+              "city": getattr(customer, "city", None),
+              "zip_code": getattr(customer, "zip_code", None),
+          }
+
+        org_ctx = {
+            "name": org.name,
+            "vat_number": getattr(org, "vat_number", None),
+            "address": getattr(org, "address", None),
+            "city": getattr(org, "city", None),
+            "zip_code": getattr(org, "zip_code", None),
+        }
+
+        context = {
+            "invoice": invoice,
+            "lines": lines,
+            "org": org_ctx,
+            "customer": customer_ctx,
+        }
+
+        return render(request, self.template_name, context)

@@ -2,7 +2,7 @@ from django.urls import path, include
 from django.http import JsonResponse
 from rest_framework.routers import DefaultRouter
 
-from .views import DeliveryNoteViewSet, InvoiceViewSet, PaymentViewSet, QuoteViewSet
+from .views import DeliveryNoteViewSet, InvoiceViewSet, PaymentViewSet, QuoteViewSet, InvoicePrintView
 
 router = DefaultRouter()
 router.register(r"delivery-notes", DeliveryNoteViewSet, basename="sales-dn")
@@ -17,4 +17,10 @@ urlpatterns = [
     path("health/", health, name="sales-health"),
 
     path("", include(router.urls)),
+
+    path(
+        "t/<slug:org_slug>/sales/invoices/<int:pk>/print/",
+        InvoicePrintView.as_view(),
+        name="invoice-print",
+    ),
 ]
