@@ -7,6 +7,9 @@ from rest_framework.exceptions import ValidationError
 from django.shortcuts import get_object_or_404, render
 from django.views import View
 from django.contrib.auth.mixins import LoginRequiredMixin
+from rest_framework.views import APIView
+from rest_framework.renderers import TemplateHTMLRenderer
+from rest_framework.permissions import IsAuthenticated
 
 from core.mixins import OrgScopedModelViewSet
 from .models import DeliveryNote, Invoice, Payment, Quote
@@ -35,6 +38,7 @@ from .services_quote import (
 )
 
 from contacts.models import Contact
+from core.models import Organization
 
 
 class DeliveryNoteViewSet(OrgScopedModelViewSet):
@@ -342,65 +346,68 @@ class QuoteViewSet(OrgScopedModelViewSet):
         # devolvemos la factura generada
         return Response(InvoiceSerializer(inv).data, status=status.HTTP_201_CREATED)
 
-class InvoicePrintView(LoginRequiredMixin, View):
+class InvoicePrintView(APIView):
+    """
+    Vista HTML imprimible de una factura concreta.
+    Protegida con JWT como el resto del API.
+    URL: /api/v1/t/<org_slug>/sales/invoices/<pk>/print/
+    """
+    renderer_classes = [TemplateHTMLRenderer]
+    permission_classes = [IsAuthenticated]
     template_name = "sales/invoice_print.html"
 
-    def get(self, request, org_slug, pk):
-        org = get_object_or_404(Org, slug=org_slug)
+    def get(self, request, org_slug, pk, *args, **kwargs):
+        org = get_object_or_404(Organization, slug=org_slug)
+
         invoice = get_object_or_404(
-            Invoice.objects.select_related("customer", "org").prefetch_related("lines"),
+            Invoice.objects.select_related("customer").prefetch_related("lines"),
             pk=pk,
             org=org,
         )
 
-        customer = getattr(invoice, "customer", None)
+        customer = invoice.customer
 
-        # Preparamos líneas con subtotal base (sin IVA) por línea
+        def display_contact_name(c):
+            if not c:
+                return ""
+            if c.razon_social:
+                return c.razon_social
+            full = f"{(c.nombre or '').strip()} {(c.apellidos or '').strip()}".strip()
+            if full:
+                return full
+            if c.nombre_comercial:
+                return c.nombre_comercial
+            return ""
+
+        customer_display_name = display_contact_name(customer)
+
+        # Preparamos líneas con base de línea (ya con descuento)
         lines = []
         for ln in invoice.lines.all():
             qty = ln.qty or 0
-            price = ln.unit_price or 0
-            subtotal = qty * price
+            unit = ln.unit_price or 0
+            disc = ln.discount_pct or 0
+            # base = qty * unit * (1 - disc/100)
+            base_line = qty * unit * (Decimal("1.00") - (disc / Decimal("100")))
             lines.append(
                 {
                     "description": ln.description,
                     "uom": ln.uom,
-                    "qty": qty,
-                    "unit_price": price,
-                    "tax_rate": ln.tax_rate or 0,
-                    "subtotal": subtotal,
+                    "qty": ln.qty,
+                    "unit_price": ln.unit_price,
+                    "tax_rate": ln.tax_rate,
+                    "discount_pct": ln.discount_pct,
+                    "base": base_line,
                 }
             )
 
-        customer_ctx = None
-        if customer:
-          # ajusta los nombres según tu modelo de Contacto
-          display_name = (
-              customer.razon_social
-              or f"{customer.nombre} {customer.apellidos}".strip()
-              or customer.nombre_comercial
-          )
-          customer_ctx = {
-              "display_name": display_name,
-              "vat_number": getattr(customer, "vat_number", None),
-              "address": getattr(customer, "address", None),
-              "city": getattr(customer, "city", None),
-              "zip_code": getattr(customer, "zip_code", None),
-          }
-
-        org_ctx = {
-            "name": org.name,
-            "vat_number": getattr(org, "vat_number", None),
-            "address": getattr(org, "address", None),
-            "city": getattr(org, "city", None),
-            "zip_code": getattr(org, "zip_code", None),
-        }
-
         context = {
             "invoice": invoice,
+            "org": org,
+            "customer": customer,
+            "customer_display_name": customer_display_name,
             "lines": lines,
-            "org": org_ctx,
-            "customer": customer_ctx,
         }
 
-        return render(request, self.template_name, context)
+        return Response(context, template_name=self.template_name)
+
