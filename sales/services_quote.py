@@ -33,6 +33,37 @@ def add_line(
         discount_pct=discount_pct,
     )
 
+@transaction.atomic
+def replace_lines(quote: Quote, *, lines: list[dict]):
+    """
+    Reemplaza TODAS las líneas de un presupuesto por las indicadas en `lines`.
+
+    Cada elemento de `lines` debe ser un dict con las claves compatibles con
+    add_line(...): product, description, qty, uom, unit_price, tax_rate, discount_pct.
+    """
+    if quote.status not in ("draft", "sent"):
+        raise ValidationError("Solo se pueden modificar presupuestos en borrador o enviados")
+
+    # Borramos las líneas actuales
+    QuoteLine.objects.filter(quote=quote).delete()
+
+    # Volvemos a crearlas usando el servicio add_line (valida estados, etc.)
+    for ln in lines:
+        add_line(
+            quote,
+            product=ln.get("product"),
+            description=ln.get("description", ""),
+            qty=ln.get("qty", Decimal("0")),
+            uom=ln.get("uom", "unidad"),
+            unit_price=ln.get("unit_price", Decimal("0.00")),
+            tax_rate=ln.get("tax_rate", Decimal("21.00")),
+            discount_pct=ln.get("discount_pct", Decimal("0.00")),
+        )
+
+    # Recalcular totales del presupuesto
+    recompute_totals(quote)
+    return quote
+
 
 @transaction.atomic
 def recompute_totals(quote: Quote):
@@ -102,3 +133,34 @@ def convert_to_invoice(quote: Quote):
     quote.save(update_fields=["invoice"])
 
     return inv
+
+@transaction.atomic
+def replace_lines(quote: Quote, *, lines: list[dict]):
+    """
+    Reemplaza TODAS las líneas de un presupuesto por las indicadas en `lines`.
+
+    Cada elemento de `lines` debe ser un dict con:
+      product (objeto Product o None)
+      description, qty, uom, unit_price, tax_rate, discount_pct
+    """
+    if quote.status not in ("draft", "sent"):
+        raise ValidationError("Solo se pueden modificar presupuestos en borrador o enviados.")
+
+    # Borramos las líneas actuales
+    QuoteLine.objects.filter(quote=quote).delete()
+
+    # Creamos las nuevas
+    for ln in lines:
+        QuoteLine.objects.create(
+            quote=quote,
+            product=ln.get("product"),
+            description=ln.get("description", ""),
+            qty=ln.get("qty", Decimal("0")),
+            uom=ln.get("uom", "unidad"),
+            unit_price=ln.get("unit_price", Decimal("0.00")),
+            tax_rate=ln.get("tax_rate", Decimal("21.00")),
+            discount_pct=ln.get("discount_pct", Decimal("0.00")),
+        )
+
+    recompute_totals(quote)
+    return quote

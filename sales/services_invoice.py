@@ -67,3 +67,30 @@ def post_invoice(inv: Invoice, *, series_default="A"):
     # - y lanzar tarea de envío a AEAT
 
     return inv
+
+@transaction.atomic
+def replace_lines(inv: Invoice, *, lines: list[dict]):
+    """
+    Reemplaza TODAS las líneas de una factura por las indicadas en `lines`.
+
+    Solo permitido si la factura NO está contabilizada (status != 'posted').
+    """
+    if inv.status == "posted":
+        raise ValidationError("No se pueden modificar líneas de una factura contabilizada.")
+
+    InvoiceLine.objects.filter(invoice=inv).delete()
+
+    for ln in lines:
+        InvoiceLine.objects.create(
+            invoice=inv,
+            product=ln.get("product"),
+            description=ln.get("description", ""),
+            qty=ln.get("qty", Decimal("0")),
+            uom=ln.get("uom", "unidad"),
+            unit_price=ln.get("unit_price", Decimal("0.00")),
+            tax_rate=ln.get("tax_rate", Decimal("21.00")),
+            discount_pct=ln.get("discount_pct", Decimal("0.00")),
+        )
+
+    recompute_totals(inv)
+    return inv

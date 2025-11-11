@@ -139,3 +139,10 @@ class QuoteSerializer(serializers.ModelSerializer):
             "invoice_id",
             "lines",
         ]
+        extra_kwargs = {
+            "number": {
+                "required": False,
+                "allow_blank": True,
+                "allow_null": True,
+            }
+        }
