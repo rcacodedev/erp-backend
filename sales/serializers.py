@@ -45,6 +45,13 @@ class DeliveryNoteSerializer(serializers.ModelSerializer):
             "status",
             "lines",
         ]
+        extra_kwargs = {
+            "number": {
+                "required": False,
+                "allow_blank": True,
+                "allow_null": True,
+            }
+        }
 
 
 class InvoiceLineSerializer(serializers.ModelSerializer):

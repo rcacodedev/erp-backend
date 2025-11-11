@@ -34,6 +34,16 @@ from .services_quote import (
 class DeliveryNoteViewSet(OrgScopedModelViewSet):
     serializer_class = DeliveryNoteSerializer
     queryset = DeliveryNote.objects.select_related("customer", "warehouse").prefetch_related("lines")
+    ordering = ["-date", "-id"]
+
+    def perform_create(self, serializer):
+        dn = serializer.save(org=self.org)
+        if not dn.number:
+            from datetime import date
+            today = date.today()
+            # Ejemplo muy sencillo, luego lo afinamos si quieres
+            dn.number = f"ALB-{today.year}-{dn.id:05d}"
+            dn.save(update_fields=["number"])
 
     @action(detail=True, methods=["post"])
     def add_line(self, request, pk=None, *args, **kwargs):
