@@ -21,7 +21,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions","django.contrib.messages","django.contrib.staticfiles",
     "rest_framework","corsheaders","django_filters","drf_spectacular",
     "django_rq",
-    "core", "accounts", "billing.apps.BillingConfig","contacts","inventory","sales","purchases","analytics","documents",
+    "core", "accounts", "billing.apps.BillingConfig","contacts","inventory","sales","purchases","analytics","documents", "agenda",
 ]
 
 AUTH_USER_MODEL = "accounts.User"

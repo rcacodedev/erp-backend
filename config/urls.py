@@ -26,6 +26,7 @@ urlpatterns = [
     path("api/v1/t/<slug:org_slug>/sales/", include("sales.urls")),
     path("api/v1/t/<slug:org_slug>/purchases/", include("purchases.urls")),
     path("api/v1/t/<slug:org_slug>/analytics/", include("analytics.urls")),
+    path("api/v1/t/<slug:org_slug>/agenda/", include("agenda.urls")),
 
     path("api/v1/billing/stripe/webhook/", stripe_webhook, name="stripe-webhook"),  # GLOBAL (sin slug)
 ]
