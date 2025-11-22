@@ -7,6 +7,10 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from django.db.models import Sum, F
+from rest_framework import viewsets
+from rest_framework.exceptions import NotFound
+from datetime import datetime, timedelta
 
 from core.mixins import OrgScopedModelViewSet
 from inventory.models import Product
@@ -384,3 +388,57 @@ class SupplierPaymentViewSet(OrgScopedModelViewSet):
         _recalc_payment_status(inv)
         # 💚 HOOK ANALYTICS
         register_supplier_payment_deleted(instance)
+
+class PurchasesKPIsViewSet(viewsets.ViewSet):
+    @action(detail=False, methods=['get'])
+    def total_purchases_by_supplier(self, request, org_slug=None):
+        if org_slug is None:
+            raise NotFound("Organization slug is required")
+
+        start_date = request.query_params.get('start_date', None)
+        end_date = request.query_params.get('end_date', None)
+        supplier_id = request.query_params.get('supplier_id', None)
+        product_category = request.query_params.get('product_category', None)
+        status = request.query_params.get('status', None)
+        compare_with_previous_period = request.query_params.get('compare_with_previous_period', False)
+
+        purchases_query = PurchaseOrder.objects.filter(org__slug=org_slug)
+
+        if start_date:
+            purchases_query = purchases_query.filter(date__gte=start_date)
+        if end_date:
+            purchases_query = purchases_query.filter(date__lte=end_date)
+        if supplier_id:
+            purchases_query = purchases_query.filter(supplier_id=supplier_id)
+        if product_category:
+            purchases_query = purchases_query.filter(lines__product__category=product_category)  # Correct filter for product category in lines
+        if status:
+            purchases_query = purchases_query.filter(status=status)
+
+        # Calculate total purchases
+        total_purchases = purchases_query.aggregate(total_purchases=Sum('total'))['total_purchases']
+
+        # Calculate margin (using cost_price for margin calculation)
+        total_margin = 0
+        for order in purchases_query:
+            total_margin += sum((line.unit_price - line.product.cost_price) * line.qty for line in order.lines.all())  # Subtracting cost_price from price
+
+        if compare_with_previous_period:
+            # Calculate previous period's purchases (e.g., last month)
+            previous_period_start = datetime.strptime(start_date, "%Y-%m-%d") - timedelta(days=30)
+            previous_period_end = datetime.strptime(end_date, "%Y-%m-%d") - timedelta(days=30)
+
+            purchases_query_previous = PurchaseOrder.objects.filter(org__slug=org_slug, date__gte=previous_period_start, date__lte=previous_period_end)
+            total_purchases_previous = purchases_query_previous.aggregate(total_purchases=Sum('total'))['total_purchases']
+            total_margin_previous = 0
+            for order in purchases_query_previous:
+                total_margin_previous += sum((line.unit_price - line.product.cost_price) * line.qty for line in order.lines.all())  # Subtracting cost_price from price
+
+            return Response({
+                'total_purchases': total_purchases,
+                'total_margin': total_margin,
+                'previous_period_purchases': total_purchases_previous,
+                'previous_period_margin': total_margin_previous
+            })
+
+        return Response({'total_purchases': total_purchases, 'total_margin': total_margin})

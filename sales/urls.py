@@ -7,7 +7,8 @@ from .views import (
     InvoiceViewSet,
     PaymentViewSet,
     QuoteViewSet,
-    InvoicePrintView,   # 👈 import nuevo
+    InvoicePrintView,
+    SalesKPIsViewSet,
 )
 
 router = DefaultRouter()
@@ -15,6 +16,7 @@ router.register(r"delivery-notes", DeliveryNoteViewSet, basename="sales-dn")
 router.register(r"invoices", InvoiceViewSet, basename="sales-inv")
 router.register(r"payments", PaymentViewSet, basename="sales-pay")
 router.register(r"quotes", QuoteViewSet, basename="sales-quote")
+router.register(r'kpis', SalesKPIsViewSet, basename='sales-kpis')
 
 
 def health(_request):

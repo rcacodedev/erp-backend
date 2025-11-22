@@ -28,6 +28,12 @@ class Product(OrgScopedModel):
     uom = models.CharField(max_length=24, default="unidad")
     tax_rate = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("21.00"))
     price = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    cost_price = models.DecimalField(  # New field for cost price
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        help_text="Cost price of the product"
+    )
     is_service = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)

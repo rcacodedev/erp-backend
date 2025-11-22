@@ -4,15 +4,18 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import NotFound
 from django.shortcuts import get_object_or_404, render
 from django.views import View
 from django.contrib.auth.mixins import LoginRequiredMixin
 from rest_framework.views import APIView
 from rest_framework.renderers import TemplateHTMLRenderer
 from rest_framework.permissions import IsAuthenticated
+from django.db.models import Sum, F
+from datetime import datetime, timedelta
 
 from core.mixins import OrgScopedModelViewSet
-from .models import DeliveryNote, Invoice, Payment, Quote
+from .models import DeliveryNote, Invoice, Payment, Quote, InvoiceLine
 from .serializers import (
     DeliveryNoteSerializer,
     DeliveryNoteLineSerializer,
@@ -411,3 +414,57 @@ class InvoicePrintView(APIView):
 
         return Response(context, template_name=self.template_name)
 
+
+class SalesKPIsViewSet(viewsets.ViewSet):
+    @action(detail=False, methods=['get'])
+    def total_sales_by_period(self, request, org_slug=None):
+        if org_slug is None:
+            raise NotFound("Organization slug is required")
+
+        start_date = request.query_params.get('start_date', None)
+        end_date = request.query_params.get('end_date', None)
+        customer_id = request.query_params.get('customer_id', None)
+        product_category = request.query_params.get('product_category', None)
+        status = request.query_params.get('status', None)
+        compare_with_previous_period = request.query_params.get('compare_with_previous_period', False)
+
+        sales_query = Invoice.objects.filter(org__slug=org_slug)
+
+        if start_date:
+            sales_query = sales_query.filter(date__gte=start_date)
+        if end_date:
+            sales_query = sales_query.filter(date__lte=end_date)
+        if customer_id:
+            sales_query = sales_query.filter(customer_id=customer_id)
+        if product_category:
+            sales_query = sales_query.filter(lines__product__category=product_category)  # Filter by product category in lines
+        if status:
+            sales_query = sales_query.filter(status=status)
+
+        # Calculate total sales
+        total_sales = sales_query.aggregate(total_sales=Sum('total'))['total_sales']
+
+        # Calculate margin (using invoice lines for product prices)
+        total_margin = 0
+        for invoice in sales_query:
+            total_margin += sum(line.product.price for line in invoice.lines.all())  # Using price instead of cost
+
+        if compare_with_previous_period:
+            # Calculate previous period's sales (e.g., last month)
+            previous_period_start = datetime.strptime(start_date, "%Y-%m-%d") - timedelta(days=30)
+            previous_period_end = datetime.strptime(end_date, "%Y-%m-%d") - timedelta(days=30)
+
+            sales_query_previous = Invoice.objects.filter(org__slug=org_slug, date__gte=previous_period_start, date__lte=previous_period_end)
+            total_sales_previous = sales_query_previous.aggregate(total_sales=Sum('total'))['total_sales']
+            total_margin_previous = 0
+            for invoice in sales_query_previous:
+                total_margin_previous += sum(line.product.price for line in invoice.lines.all())  # Using price for comparison
+
+            return Response({
+                'total_sales': total_sales,
+                'total_margin': total_margin,
+                'previous_period_sales': total_sales_previous,
+                'previous_period_margin': total_margin_previous
+            })
+
+        return Response({'total_sales': total_sales, 'total_margin': total_margin})
