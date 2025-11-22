@@ -133,6 +133,8 @@ class Invoice(OrgScopedModel):
     verifactu_ack_payload = models.TextField(blank=True, default="")
     verifactu_error = models.TextField(blank=True, default="")
     verifactu_qr_text = models.TextField(blank=True, default="")  # texto QR para PDF
+    # Fecha de vencimiento para aging/cashflow (nullable; se puede rellenar al "postear")
+    due_date = models.DateField(null=True, blank=True)
 
     # TODO VERIFACTU: cuando vuelvas de la asesoría:
     # - decidir formato exacto de verifactu_hash/verifactu_qr_text

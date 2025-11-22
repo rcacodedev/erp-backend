@@ -8,8 +8,8 @@ from rest_framework.exceptions import ValidationError
 
 from django.http import JsonResponse
 
-from .services import get_yearly_summary, get_sales_timeseries, get_expenses_timeseries, get_receivables_overview, get_vat_summary, get_top_customers, get_quotes_vs_invoices
-
+from .services import get_yearly_summary, get_sales_timeseries, get_expenses_timeseries, get_receivables_overview, get_vat_summary, get_top_customers, get_quotes_vs_invoices, get_margins, get_aging_receivables, get_aging_payables, get_cashflow, get_customers_abc, get_cohorts, get_top_products
+from billing.decorators import require_plan
 
 def health(_request):
     return JsonResponse({"app": "analytics", "status": "ok"})
@@ -261,3 +261,59 @@ class QuotesVsInvoicesView(BaseAnalyticsView):
         )
 
         return Response(data)
+
+
+class MarginsView(BaseAnalyticsView):
+    @require_plan("pro")
+    def get(self, request, *args, **kwargs):
+        org = self.get_org(request)
+        group_by = request.query_params.get("group_by", "product")
+        dfrom = request.query_params.get("from")
+        dto = request.query_params.get("to")
+        return Response(get_margins(org, dfrom, dto, group_by))
+
+class AgingReceivablesView(BaseAnalyticsView):
+    def get(self, request, *args, **kwargs):
+        org = self.get_org(request)
+        as_of = request.query_params.get("as_of")
+        return Response(get_aging_receivables(org, as_of))
+
+class AgingPayablesView(BaseAnalyticsView):
+    def get(self, request, *args, **kwargs):
+        org = self.get_org(request)
+        as_of = request.query_params.get("as_of")
+        return Response(get_aging_payables(org, as_of))
+
+class CashflowView(BaseAnalyticsView):
+    @require_plan("pro")
+    def get(self, request, *args, **kwargs):
+        org = self.get_org(request)
+        dfrom = request.query_params.get("from")
+        dto = request.query_params.get("to")
+        bucket = request.query_params.get("bucket", "day")
+        return Response(get_cashflow(org, dfrom, dto, bucket))
+
+class CustomersABCView(BaseAnalyticsView):
+    @require_plan("pro")
+    def get(self, request, *args, **kwargs):
+        org = self.get_org(request)
+        dfrom = request.query_params.get("from")
+        dto = request.query_params.get("to")
+        rule = request.query_params.get("rule", "80-15-5")
+        return Response(get_customers_abc(org, dfrom, dto, rule))
+
+class CohortsView(BaseAnalyticsView):
+    @require_plan("pro")
+    def get(self, request, *args, **kwargs):
+        org = self.get_org(request)
+        months = int(request.query_params.get("months", "6"))
+        return Response(get_cohorts(org, months))
+
+class TopProductsView(BaseAnalyticsView):
+    def get(self, request, *args, **kwargs):
+        org = self.get_org(request)
+        dfrom = request.query_params.get("from")
+        dto = request.query_params.get("to")
+        by = request.query_params.get("by", "revenue")
+        limit = int(request.query_params.get("limit", "10"))
+        return Response(get_top_products(org, dfrom, dto, by, limit))
