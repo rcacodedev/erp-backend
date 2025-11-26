@@ -1,8 +1,10 @@
 # integrations/utils.py
+import os          # 👈 nuevo
 import json
 import hmac
 import hashlib
 from django.utils import timezone
+from django.conf import settings   # 👈 nuevo
 from django_rq import enqueue
 
 from .models import WebhookEndpoint, WebhookDelivery
@@ -11,7 +13,8 @@ from .models import WebhookEndpoint, WebhookDelivery
 def trigger_webhook_event(org, event_name: str, payload: dict):
     """
     Crea entregas de webhook para todos los endpoints activos
-    de la organización que escuchen ese evento y las encola en RQ.
+    de la organización que escuchen ese evento y las procesa
+    vía RQ o en modo síncrono (según entorno).
     """
     endpoints = WebhookEndpoint.objects.filter(
         organization=org,
@@ -27,7 +30,14 @@ def trigger_webhook_event(org, event_name: str, payload: dict):
             payload=payload,
         )
         deliveries.append(delivery)
-        enqueue(process_webhook_delivery, delivery.id)
+
+        # 🔹 En dev sobre Windows (os.name == "nt"), lo hacemos síncrono:
+        if settings.DEBUG and os.name == "nt":
+            # Ejecutar en la misma petición, sin RQ
+            process_webhook_delivery(delivery.id)
+        else:
+            # Producción / Linux: encolar en RQ
+            enqueue(process_webhook_delivery, delivery.id)
 
     return deliveries
 

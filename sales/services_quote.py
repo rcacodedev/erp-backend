@@ -102,7 +102,6 @@ def convert_to_invoice(quote: Quote):
     inv = Invoice.objects.create(
         org=quote.org,
         series="A",          # se reenumerará en post_invoice
-        number=0,            # placeholder
         date_issue=quote.date,
         customer=quote.customer,
         billing_address=quote.billing_address,
