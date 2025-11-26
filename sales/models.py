@@ -82,7 +82,7 @@ class DeliveryNoteLine(models.Model):
 
 class Invoice(OrgScopedModel):
     series = models.CharField(max_length=8, default="A")
-    number = models.IntegerField()
+    number = models.IntegerField(null=True, blank=True)
     date_issue = models.DateField(default=timezone.now)
     customer = models.ForeignKey(Contact, on_delete=models.PROTECT)
     billing_address = models.CharField(max_length=240, blank=True, default="")

@@ -98,6 +98,12 @@ class InvoiceSerializer(serializers.ModelSerializer):
             "verifactu_qr_text",
             "lines",
         ]
+        extra_kwargs = {
+            "number": {
+                "required": False,
+                "allow_null": True,
+            }
+        }
 
 
 class PaymentSerializer(serializers.ModelSerializer):

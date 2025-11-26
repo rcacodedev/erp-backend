@@ -1,0 +1,8 @@
+Hola {{ user.first_name|default:user.email }},
+
+Este es un correo de prueba de PREATOR para la organización {{ organization.name }}.
+
+Si lo ves, la configuración de correo funciona correctamente.
+
+Un saludo,
+Equipo PREATOR

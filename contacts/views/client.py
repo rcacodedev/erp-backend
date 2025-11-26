@@ -5,6 +5,8 @@ from contacts.models import Contact
 from contacts.serializers.contact import ContactListSerializer, ContactDetailSerializer
 from contacts.filters import ContactFilter
 from .mixins import OrgScopedViewSet
+from contacts.choices import ContactType
+from integrations.utils import trigger_webhook_event
 
 class ClientViewSet(OrgScopedViewSet, viewsets.ModelViewSet):
     permission_classes = (IsAuthenticated,)
@@ -39,12 +41,34 @@ class ClientViewSet(OrgScopedViewSet, viewsets.ModelViewSet):
         )
 
     def perform_create(self, serializer):
-        serializer.save(
-            org=self.get_org(),
+        org = self.get_org()
+        contact = serializer.save(
+            org=org,
             tipo="client",
             created_by=self.request.user,
             updated_by=self.request.user,
         )
+
+        # Webhook client.created también aquí
+        try:
+            trigger_webhook_event(
+                org,
+                "client.created",
+                {
+                    "id": contact.id,
+                    "org_slug": org.slug,
+                    "tipo": contact.tipo,
+                    "nombre": contact.nombre,
+                    "apellidos": contact.apellidos,
+                    "razon_social": contact.razon_social,
+                    "nombre_comercial": contact.nombre_comercial,
+                    "email": contact.email,
+                    "telefono": contact.telefono,
+                    "movil": contact.movil,
+                },
+            )
+        except Exception:
+            pass
 
     def perform_update(self, serializer):
         serializer.save(tipo="client", updated_by=self.request.user)

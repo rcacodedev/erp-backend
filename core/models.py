@@ -63,3 +63,26 @@ class UserPreference(models.Model):
 
     def __str__(self):
         return f"{self.user_id}:{self.key}"
+
+class OrganizationEmailSettings(models.Model):
+    organization = models.OneToOneField(
+        "core.Organization",
+        on_delete=models.CASCADE,
+        related_name="email_settings",
+    )
+    from_name = models.CharField(max_length=200, default="PREATOR")
+    from_email = models.EmailField(blank=True, null=True)      # si vacío, DEFAULT_FROM_EMAIL
+    reply_to_email = models.EmailField(blank=True, null=True)
+    bcc_on_outgoing = models.EmailField(blank=True, null=True) # copia oculta opcional
+    send_system_emails = models.BooleanField(default=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def get_from_address(self):
+        email = self.from_email or getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@preator.es")
+        name = self.from_name or "PREATOR"
+        return f"{name} <{email}>"
+
+    def __str__(self):
+        return f"EmailSettings({self.organization.slug})"

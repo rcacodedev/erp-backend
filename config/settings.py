@@ -21,7 +21,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions","django.contrib.messages","django.contrib.staticfiles",
     "rest_framework","corsheaders","django_filters","drf_spectacular",
     "django_rq",
-    "core", "accounts", "billing.apps.BillingConfig","contacts","inventory","sales","purchases","analytics","documents", "agenda",
+    "core", "accounts", "billing.apps.BillingConfig","contacts","inventory","sales","purchases","analytics","documents", "agenda", "integrations",
 ]
 
 AUTH_USER_MODEL = "accounts.User"
@@ -128,3 +128,23 @@ STRIPE_PRICE_ENTERPRISE = os.getenv("STRIPE_PRICE_ENTERPRISE")
 BILLING_SUCCESS_URL = os.getenv("BILLING_SUCCESS_URL", "http://localhost:5173/billing/success")
 BILLING_CANCEL_URL = os.getenv("BILLING_CANCEL_URL", "http://localhost:5173/billing/cancel")
 PORTAL_RETURN_URL = os.getenv("PORTAL_RETURN_URL", "http://localhost:5173/billing/portal-return")
+
+# --- EMAIL / MIGADU (H8.1) ---
+EMAIL_BACKEND = os.getenv(
+    "EMAIL_BACKEND",
+    "django.core.mail.backends.smtp.EmailBackend",
+)
+
+EMAIL_HOST = os.getenv("EMAIL_HOST", "")
+EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587") or "587")
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
+
+EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "True") == "True"
+EMAIL_USE_SSL = os.getenv("EMAIL_USE_SSL", "False") == "True"
+
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", EMAIL_HOST_USER or "no-reply@preator.es")
+SERVER_EMAIL = os.getenv("SERVER_EMAIL", DEFAULT_FROM_EMAIL)
+
+SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", "soporte@preator.es")
+BILLING_EMAIL = os.getenv("BILLING_EMAIL", "facturacion@preator.es")

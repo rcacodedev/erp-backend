@@ -11,6 +11,9 @@ from rest_framework.response import Response
 from django.utils import timezone
 from agenda.models import Event, Note
 from agenda.serializers import EventSerializer, NoteSerializer
+from contacts.choices import ContactType
+from integrations.utils import trigger_webhook_event
+
 
 class ContactViewSet(OrgScopedViewSet, viewsets.ModelViewSet):
     queryset = Contact.objects.all()
@@ -30,6 +33,34 @@ class ContactViewSet(OrgScopedViewSet, viewsets.ModelViewSet):
         if self.action == "list":
             return ContactListSerializer
         return ContactDetailSerializer
+
+    def perform_create(self, serializer):
+        # Asegurar que se asigna la organización actual
+        org = self.request.org
+        contact = serializer.save(org=org)
+
+        # Solo disparamos webhook para clientes
+        if contact.tipo == ContactType.CLIENT:
+            try:
+                trigger_webhook_event(
+                    org,
+                    "client.created",
+                    {
+                        "id": contact.id,
+                        "org_slug": org.slug,
+                        "tipo": contact.tipo,
+                        "nombre": contact.nombre,
+                        "apellidos": contact.apellidos,
+                        "razon_social": contact.razon_social,
+                        "nombre_comercial": contact.nombre_comercial,
+                        "email": contact.email,
+                        "telefono": contact.telefono,
+                        "movil": contact.movil,
+                    },
+                )
+            except Exception:
+                # No rompemos la creación del contacto si el webhook falla
+                pass
 
     @action(detail=True, methods=["get"], url_path="agenda")
     def agenda(self, request, pk=None, org_slug=None):

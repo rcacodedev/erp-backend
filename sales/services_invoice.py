@@ -6,7 +6,7 @@ from rest_framework.exceptions import ValidationError
 from .models import Invoice, InvoiceLine
 from .services_numbering import next_invoice_number
 from .pricing import compute_invoice_totals
-
+from integrations.utils import trigger_webhook_event
 
 @transaction.atomic
 def add_line(
@@ -59,6 +59,26 @@ def post_invoice(inv: Invoice, *, series_default="A"):
     recompute_totals(inv)
     inv.status = "posted"
     inv.save(update_fields=["series", "number", "status", "totals_base", "totals_tax", "total"])
+
+    # Disparar webhook: invoice.created
+    try:
+        trigger_webhook_event(
+            inv.org,
+            "invoice.created",
+            {
+                "id": inv.id,
+                "org_slug": inv.org.slug,
+                "series": inv.series,
+                "number": inv.number,
+                "date_issue": inv.date_issue.isoformat() if inv.date_issue else None,
+                "customer_id": inv.customer_id,
+                "total": str(inv.total),
+                "status": inv.status,
+            },
+        )
+    except Exception:
+        # No rompemos la factura si el webhook falla
+        pass
 
     # TODO VERIFACTU:
     # Aquí será buen sitio para:
