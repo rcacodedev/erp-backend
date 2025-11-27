@@ -12,7 +12,7 @@ from rest_framework.throttling import ScopedRateThrottle
 from django.utils import timezone
 
 from .models import EmailVerificationToken, PasswordResetToken
-from .utils import send_verification_email, send_password_reset_email
+from .utils import send_verification_email, send_password_reset_email, send_password_changed_notification
 
 
 
@@ -288,6 +288,9 @@ class ResetPasswordView(APIView):
 
         # Marcamos el token como usado
         evt.mark_used()
+
+        # Aviso de seguridad: la contraseña se ha cambiado
+        send_password_changed_notification(user)
 
         return Response(
             {"detail": "Contraseña actualizada correctamente."},

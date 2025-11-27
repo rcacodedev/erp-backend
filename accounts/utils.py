@@ -127,3 +127,69 @@ def send_password_reset_email(user):
         return bool(sent)
     except Exception:
         return False
+
+def send_password_changed_notification(user):
+    """
+    Envía un email avisando de que la contraseña se ha cambiado.
+    Ideal para detectar cambios no autorizados.
+    """
+    if not user.email:
+        return False
+
+    subject = "Tu contraseña de PREATOR se ha cambiado"
+    message = (
+        "Hola,\n\n"
+        "Te informamos de que la contraseña de tu cuenta en PREATOR se ha cambiado.\n\n"
+        "Si has sido tú, no tienes que hacer nada más.\n"
+        "Si NO has sido tú, cambia la contraseña de inmediato y contacta con tu gestor o con soporte.\n\n"
+        "Un saludo,\n"
+        "El equipo de PREATOR"
+    )
+
+    from_email = getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@preator.es")
+
+    try:
+        sent = send_mail(
+            subject=subject,
+            message=message,
+            from_email=from_email,
+            recipient_list=[user.email],
+            fail_silently=True,
+        )
+        return bool(sent)
+    except Exception:
+        return False
+
+
+def send_email_changed_notification(old_email: str, new_email: str):
+    """
+    Helper preparado para cuando implementemos cambio de email en la cuenta.
+    De momento no se usa, pero lo dejamos listo.
+    """
+    if not old_email:
+        return False
+
+    subject = "Tu email de acceso a PREATOR ha cambiado"
+    message = (
+        "Hola,\n\n"
+        "Te informamos de que el email asociado a tu cuenta de PREATOR se ha cambiado.\n\n"
+        f"Email anterior: {old_email}\n"
+        f"Nuevo email: {new_email}\n\n"
+        "Si no reconoces este cambio, contacta con soporte lo antes posible.\n\n"
+        "Un saludo,\n"
+        "El equipo de PREATOR"
+    )
+
+    from_email = getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@preator.es")
+
+    try:
+        sent = send_mail(
+            subject=subject,
+            message=message,
+            from_email=from_email,
+            recipient_list=[old_email],
+            fail_silently=True,
+        )
+        return bool(sent)
+    except Exception:
+        return False
