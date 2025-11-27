@@ -2,7 +2,17 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
-from accounts.views import RegisterView, LoginView, RefreshCookieView, LogoutView, MeView
+from accounts.views import (
+    RegisterView,
+    LoginView,
+    RefreshCookieView,
+    LogoutView,
+    MeView,
+    SendVerificationEmailView,
+    VerifyEmailView,
+    RequestPasswordResetView,
+    ResetPasswordView,
+)
 from billing.webhooks import stripe_webhook
 import os
 
@@ -13,6 +23,26 @@ urlpatterns = [
     path("api/v1/auth/refresh", RefreshCookieView.as_view(), name="auth-refresh"),
     path("api/v1/auth/logout", LogoutView.as_view(), name="auth-logout"),
     path("api/v1/auth/me", MeView.as_view(), name="auth-me"),
+    path(
+        "api/v1/auth/send-verification-email",
+        SendVerificationEmailView.as_view(),
+        name="auth-send-verification-email",
+    ),
+    path(
+        "api/v1/auth/verify-email",
+        VerifyEmailView.as_view(),
+        name="auth-verify-email",
+    ),
+    path(
+        "api/v1/auth/request-password-reset",
+        RequestPasswordResetView.as_view(),
+        name="auth-request-password-reset",
+    ),
+    path(
+        "api/v1/auth/reset-password",
+        ResetPasswordView.as_view(),
+        name="auth-reset-password",
+    ),
 
     # Multi-tenant
     path("api/v1/t/<slug:org_slug>/core/", include("core.urls")),

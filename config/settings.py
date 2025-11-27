@@ -108,6 +108,7 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME":"django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME":"django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
+PASSWORD_RESET_TOKEN_HOURS = int(os.getenv("PASSWORD_RESET_TOKEN_HOURS", "24"))
 
 LANGUAGE_CODE = "es-es"
 TIME_ZONE = "Europe/Madrid"
