@@ -1,6 +1,4 @@
 from django.shortcuts import render
-
-# Create your views here.
 from django.conf import settings
 from rest_framework import status
 from rest_framework.response import Response
@@ -10,6 +8,8 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenRefreshView
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from accounts.serializers import RegisterSerializer, LoginSerializer, TenantAwareTokenObtainPairSerializer
+from rest_framework.throttling import ScopedRateThrottle
+
 
 REFRESH_COOKIE_NAME = getattr(settings, "REFRESH_COOKIE_NAME", "refresh_token")
 COOKIE_KW = dict(
@@ -21,6 +21,9 @@ COOKIE_KW = dict(
 
 class RegisterView(APIView):
     permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "auth"
+
     def post(self, request):
         ser = RegisterSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
@@ -29,6 +32,9 @@ class RegisterView(APIView):
 
 class LoginView(APIView):
     permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "auth"
+
     def post(self, request):
         # Reutilizamos lógica de TokenObtain pero controlamos cookie
         token_ser = TenantAwareTokenObtainPairSerializer(data=request.data, context={"request": request})
@@ -44,6 +50,8 @@ class RefreshCookieView(APIView):
     No muta request.data; usa un dict local.
     """
     permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "auth"
 
     def post(self, request, *args, **kwargs):
         # Copia segura del payload (puede ser dict o QueryDict)
